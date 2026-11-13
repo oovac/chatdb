@@ -1,4 +1,4 @@
-name = "chatdb"
+name = "cdb"
 main = ".open-next/worker.js"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
@@ -8,16 +8,16 @@ assets = { directory = ".open-next/assets" }
 
 [[d1_databases]]
 binding = "DB"
-database_name = "chatdb-prod"
-database_id = "REPLACE_WITH_YOUR_D1_ID"
+database_name = "cdb"
+database_id = "e94db3cc-00b9-45e4-a653-b0d5a951c3cf"
 
 [[vectorize]]
 binding = "VECTORIZE"
-index_name = "chatdb-messages"
+index_name = "cdb-messages"
 
 [ai]
 binding = "AI"          # Workers AI — @cf/baai/bge-m3
 
 [[kv_namespaces]]
 binding = "KV"
-id = "REPLACE_WITH_YOUR_KV_ID"
+id = "717fc816c5ce466d85dbcc054ebda88a
