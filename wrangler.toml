@@ -20,4 +20,4 @@ binding = "AI"          # Workers AI — @cf/baai/bge-m3
 
 [[kv_namespaces]]
 binding = "KV"
-id = "717fc816c5ce466d85dbcc054ebda88a
+id = "717fc816c5ce466d85dbcc054ebda88a"
