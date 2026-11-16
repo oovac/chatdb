@@ -1,43 +1,31 @@
-import { auth } from './auth';
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
+import { verifyAccessIdentity } from './lib/access-identity.mjs';
 
-// Public paths that don't require a session cookie
-const PUBLIC_PREFIXES = [
-  '/login',
-  '/api/auth',      // NextAuth callbacks
-  '/api/ingest',    // Bearer token auth (browser extension)
-  '/mcp',           // Bearer token auth (MCP server)
-  '/.well-known/',  // OAuth server metadata (RFC 8414)
-  '/oauth/',        // OAuth endpoints: register, authorize, token
+const BEARER_OR_PROTOCOL_PATHS = [
+  '/api/ingest', '/mcp', '/.well-known/', '/oauth/', '/api/auth',
 ];
+const STATIC_PATHS = ['/_next/', '/favicon', '/manifest.json', '/sw.js', '/icons/'];
 
-export default auth((req) => {
-  const { pathname } = req.nextUrl;
-
-  const isPublic = PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
-  if (isPublic) return NextResponse.next();
-
-  // Static assets & PWA files handled separately
-  if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/favicon') ||
-    pathname === '/manifest.json' ||
-    pathname === '/sw.js' ||
-    pathname.startsWith('/icons/')
-  ) {
+export default async function middleware(req: NextRequest) {
+  const path = req.nextUrl.pathname;
+  if (BEARER_OR_PROTOCOL_PATHS.some(p => path.startsWith(p)) ||
+      STATIC_PATHS.some(p => path.startsWith(p)) ||
+      path === '/login' ||
+      path === '/api/signout') {
+    // Bearer endpoints authenticate independently. Cloudflare Access remains
+    // the external gate for every path; this is not a bypass of Cloudflare.
     return NextResponse.next();
   }
 
-  // Redirect unauthenticated users to /login
-  if (!req.auth) {
-    const loginUrl = new URL('/login', req.url);
-    loginUrl.searchParams.set('callbackUrl', pathname);
-    return NextResponse.redirect(loginUrl);
+  const identity = await verifyAccessIdentity(req.headers);
+  if (!identity) {
+    if (path.startsWith('/api/')) return NextResponse.json({ error: 'Access authentication required' }, { status: 401 });
+    const url = new URL('/login', req.url);
+    return NextResponse.redirect(url);
   }
-
   return NextResponse.next();
-});
+}
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|favicon.svg|sw\\.js|manifest\\.json|icons/|api/signout).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|favicon.svg|sw\\.js|manifest\\.json|icons/).*)'],
 };
